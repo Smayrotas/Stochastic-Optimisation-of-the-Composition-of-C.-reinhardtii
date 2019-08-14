@@ -11,59 +11,13 @@ functions there, speak to Alex about it this week.
 ----------------------
 
 %}
-
-    
-
-switch (length(varargin))
-    
-    case 1
-        model=varargin{:};
-   
-    case 2
-        model=varargin{:};
-        miuExp=varargin{:,2};
-    
-    case 3
-        model=varargin{:};
-        miuExp=varargin{:,2};
-        uniqueIds=varargin{:,3};
-    case 4
-        model=varargin{:};
-        miuExp=varargin{:,2};
-        uniqueIds=varargin{:,3};
-        an=varargin{:,4};
-    case 5
-        model=varargin{:};
-        miuExp=varargin{:,2};
-        uniqueIds=varargin{:,3};
-        an=varargin{:,4};
-        an2=varargin{:,5};
-    case 6
-        model=varargin{:};
-        miuExp=varargin{:,2};
-        uniqueIds=varargin{:,3};
-        an=varargin{:,4};
-        an2=varargin{:,5};
-        fitnessFunctionScores=varargin{:,6};
-    case 7
-        model=varargin{:};
-        miuExp=varargin{:,2};
-        uniqueIds=varargin{:,3};
-        an=varargin{:,4};
-        an2=varargin{:,5};
-        fitnessFunctionScores=varargin{:,6};
-        numberOfPointsToAverage=varargin{:,7};
-    case 8
-        model=varargin{:};
-        miuExp=varargin{:,2};
-        uniqueIds=varargin{:,3};
-        an=varargin{:,4};
-        an2=varargin{:,5};
-        fitnessFunctionScores=varargin{:,6};
-        numberOfPointsToAverage=varargin{:,7};
-        an3=varargin{:,8};
-end
-
+model=varargin{:};
+miuExp=varargin{:,2};
+an=varargin{:,3};
+an2=varargin{:,4};
+fitnessFunctionScores=varargin{:,5};
+numberOfPointsToAverage=varargin{:,6};
+an3=varargin{:,7};
 %{
   ------------------------------------  
     Important things to do to fix some bugs:
@@ -80,7 +34,7 @@ load iteration.mat
 
 if iteration~=0     
    
-    model=GroupToFBACoef(x,'ff',model,model.light);
+    model=GroupToFBACoef(x,'ff',model);
     
 end
 
@@ -89,26 +43,22 @@ load staticCoefs.mat %Could potentially load them earlier and pass them inside t
 
 fluxes=solution.x;
 miuFba=solution.f;
-TUX=tuxCalc(uniqueIds,fluxes);
 
-sprintf('Calculated Miu: %d | Calculated TUX: %d | Expectation(1): %d | %d',miuFba,TUX ,x(1,1))
+
+sprintf('Calculated Difference: %d | Expectation(1): %d | %d',(miuFba-miuExp)^2,x(1,1))
 
 absoluteTotalSum=abs(abs(sum(x)+sum(staticCoefs(1,:)))-1);
 
-f=((miuExp-miuFba)/miuExp)^2+abs(TUX/(solution.x(25)))+absoluteTotalSum;
+f=((miuExp-miuFba)/miuExp)^2+absoluteTotalSum;
 
 %{ 
 Friday 28th of June 2019
 
 1. Normalised stochiometric coefficients should add up to one
 
-2. Take out the TUX term as we dont need it anymore
-
-3. Ensure that you understand the scatter search and then 
+2. Ensure that you understand the scatter search and then 
 ensure that it creates generations so actually pick the best fittness
 funciton to plot out of the generation. READ THE PAPER.L
-
-
 
 %}
 
@@ -144,4 +94,5 @@ save('iteration.mat','iteration')
 
 disp(iteration)
 disp(f)
+
 end
