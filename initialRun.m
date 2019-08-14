@@ -1,35 +1,43 @@
-function [y]=initialRun(s)
+function [y]=initialRun(s,type,path)
 addpath("../AMIGO2_R2019a/Kernel/OPT_solvers/eSS/")
+cd ~/Desktop/UCL/Research_Project_Publication/ScatterSearchOptimisation/
 
 %{
 
-----------------------------
-The VFA models have not been made so it might be worth looking to make the
-VFA models actually and ensure they are added to the documents as well.
+-----------------------
 
-----------------------------
+--> Save the finalModel after all the iterations
+
+--> Save the graphs as well
+
+-----------------------
+
 %}
 
-opts.maxeval=1000000; %Maximum number of function evaluations
+opts.maxeval=1000; %Maximum number of function evaluations
+opts.maxtime=1000; %Maximum CPU time in seconds
+%opts.plot=2;
 problem.f="fitnessFunction";
+fileName=string();
 
-ffbyIt=[];
 
+bestSolutions=[];
 
-save('ffbyIt.mat','ffbyIt')
-
-uniqueIds=[47, 48, 50, 51];
 fitnessFunctionScores=[];
 
 numberOfPointsToAverage=20;
-
+if strcmp(type,'auto')
+    load initialStaticCoefs.mat
 problem.x_0=[-0.504257791202465, -0.009009596393554, -0.015015810556168,...
     -0.125684674696244, -0.002905338716127, -0.198899297082671 ];
 
+elseif strcmp(type,'mixo')
+    load initialStaticCoefsMixo.mat
+problem.x_0=[-0.50507593272838500000, -0.00700746386165342000 ,...
+        -0.01301370248201190000,-0.12568467469624400000 ,-0.00002278606909204460...
+        ,-0.22402395784666000000 ];
 
-
-load initialStaticCoefs.mat
-load staticCoefs.mat
+end
 
 if isfile('iteration.mat')==1
    delete('iteration.mat')
@@ -37,63 +45,102 @@ if isfile('iteration.mat')==1
    save('iteration.mat','iteration');
 end
 
+if isfile('ess_report.mat')==1
+   delete('ess_report.mat');
+end
+
+
 switch (s)
-    case 'W'
-        
-        load startingModels/whiteStartingModel.mat
-        model.light='White';
-        miuExp=0.0640686456779267;
-        multCoef=0.789677419;
-        
+    case 'W'      
+        s='white';      
     case 'R'
-        
-        load startingModels/redStartingModel.mat
-        model.light='Red';
-        miuExp=0.104157835723662;
-        multCoef=1.234285714;
-    
+        s='red';
+           
     case 'B'
-        
-        load startingModels/blueStartingModel.mat
-        model.light='Blue';
-        miuExp=0.0560800411699732;
-        multCoef=0.708571429;
-        
+        s='blue';
+     
 end
 
-if strcmp(model.light,'White')
-    
-   problem.x_L=[-0.130789516522872, -0.0379289597916327, -0.01275197786098,...
-        -0.228881653915025, -0.00539506755656845, -0.588552824352922];
+%b=join([pwd]);
+%path=fileFinder(s,b);
+%path=path(1,1);
+%cd ~
+load(path)
+%pathInd=regexp(path,'\w*starting');
+%path=char(path);
+%path=join(['~/',path(1:pathInd-1)]);
+%cd('/Users/SteliosMavrotas/Desktop/UCL/Research_Project_Publication/ScatterSearchOptimisation')
 
-    problem.x_U=[-0.0292104834771284, -0.00847104020836725, -0.00284802213902002,...
-         -0.0511183460849748, -0.00120493244343155, -0.131447175647078];
+%disp(model.id)
+if strcmp(type,'auto')
+    %ind=find([model.rxns{:,1}]=='Biomass_Chlamy_auto');
+    ind=53;
+elseif strcmp(type,'mixo')
+    %ind=find([model.rxns{:,1}]=='Biomass_Chlamy_mixo');
+    ind=54;
+end
     
-elseif strcmp(model.light,'Red')
-    
-    problem.x_L=[-0.3697004568, -0.0321610887, -0.0083950696,...
-        -0.350724194, -0.0067677627, -0.5046639705];
-    
-    problem.x_U=[-0.211401103, -0.018390266, -0.004800446,...
-        -0.200550149, -0.003869924, -0.28857557];
+miuExp=(model.lb(ind)+model.ub(ind))/2;
 
-elseif strcmp(model.light,'Blue')
+if and(strcmp(s,'white'),strcmp(type,'auto')) 
     
-    problem.x_L=[-0.1910915776, -0.0665521204, -0.023270307,...
-        -0.3238500636, -0.0103114554, -0.7249244759];
+   problem.x_L=[-0.1302295295, -0.0377665636, -0.0126973791,...
+       -0.2279016767,-0.0053719681,-0.5860328830];
+   
+    problem.x_U=[-0.0297704705,-0.0086334364,-0.0029026209,...
+        -0.0520983233,-0.0012280319,-0.1339671170];
     
-    problem.x_U=[-0.094119732, -0.032779403, -0.011461494,...
-        -0.15950824, -0.005078777, -0.357052354];
+     problem.light='W';
+     
+elseif and(strcmp(s,'red'),strcmp(type,'auto'))
+    
+    problem.x_L=[-0.3697004568,-0.0321610887,-0.0083950696,...
+        -0.3507241940,-0.0067677627,-0.5046639705];
+    
+    problem.x_U=[-0.2114011034,-0.0183902657,-0.0048004457,...
+        -0.2005501487,-0.0038699236,-0.2885755705];
+    
+    problem.light='R';
+    
+elseif and(strcmp(s,'blue'),strcmp(type,'auto'))
+    
+    problem.x_L=[-0.1912995730,-0.0666245597,-0.0232956358,...
+        -0.3242025611,-0.0103226790,-0.7257135266];
+    
+    problem.x_U=[-0.0939117369,-0.0327069633,-0.0114361657,...
+        -0.1591557427,-0.0050675530,-0.3562633031];
+    
+    problem.light='B';
+    
+elseif and(strcmp(s,'white'),strcmp(type,'mixo'))
+      
+    problem.x_L=[-0.2323708429, -0.0274822664, -0.0101372740,...
+        -0.2142613011,-0.0050952263,-0.5106530893];
+    
+    problem.x_U=[-0.0587726784, -0.0069509857, -0.0025639824,...
+        -0.0541923005, -0.0012887163, -0.1291575545];
+    
+    problem.light='W';
+
+elseif and(strcmp(s,'red'),strcmp(type,'mixo'))
+    problem.x_L=[-0.1148631958, -0.0259126104, -0.0081871680,...
+         -0.1778353475, -0.0057048919, -0.2510722950];
+    
+    problem.x_U=[-0.0290519137, -0.0065539785, -0.0020707494,...
+        -0.0449792218, -0.0014429167, -0.0635027659];
+    
+    problem.light='R';
+elseif and(strcmp(s,'blue'),strcmp(type,'mixo'))
+    problem.x_L=[-0.1467973835, -0.0429727869, -0.0191441590,...
+        -0.2698897263, -0.0037568544, -0.5018423882];
+    
+    problem.x_U=[-0.0371289070, -0.0108689445, -0.0048420597,...
+        -0.0682621877, -0.0009502070, -0.1269290972];
+    
+    problem.light='B';
 end
 
-
-for i=1:length(staticCoefs)
-   staticCoefs(1,i)=initialStaticCoefs(1,i)*multCoef;
-end
-
-for i=1:length(problem.x_0)
-   problem.x_0(1,i)=problem.x_0(1,i)*multCoef;
-end
+staticCoefs(1,:)=initialStaticCoefs(1,:);
 
 changeCobraSolver('gurobi')
 solution=optimizeCbModel(model);
@@ -105,54 +152,41 @@ an2=animatedline('Marker','o');
 
 an3=animatedline('Marker','x');
 
-Results=ess_kernel(problem,opts,model,miuExp,uniqueIds,an,an2,fitnessFunctionScores, numberOfPointsToAverage,an3);
+Results=ess_kernel(problem,opts,model,miuExp,an,an2,fitnessFunctionScores, numberOfPointsToAverage,an3);
 
-
+clear all 
+ 
 fileName=datestr(datetime);
-fileName=erase(erase(erase(filename,' '),':'),'-');
+fileName=erase(erase(erase(fileName,' '),':'),'-');
+ 
+load ess_report.mat
 
-save(strcat('ResultsFile/',filename,'.mat'),'Results');
+xL=problem.x_L';
+xU=problem.x_U';
 
-%optimizedGroups=GeneticAlgo(totalVariableNumber,s,model);
+ff=[];
+bestSolutions=[];
 
-% if strcmp(s,'W')
-%     newModel=GroupToFBACoef(optimizedGroups,'ff',model,'W');
-%     finalCoefs=GroupToFBACoef(optimizedGroups,'end',[],'W');
-%     cd('GeneticAlgorithFinalModel/White_Light')
-% elseif strcmp(s,'R')
-%     newModel=GroupToFBACoef(optimizedGroups,'ff',model,'R');
-%     finalCoefs=GroupToFBACoef(optimizedGroups,'end',[],'R');
-%     cd('GeneticAlgorithFinalModel/Red_Light')
-% elseif strcmp(s,'B')
-%     newModel=GroupToFBACoef(optimizedGroups,'ff',model,'B');
-%     finalCoefs=GroupToFBACoef(optimizedGroups,'end',[],'B');
-%     cd('GeneticAlgorithFinalModel/Blue_Light')
-% end
-% 
-% save ('optimizedGroups.mat','optimizedGroups')
-% save ('optimizedModel.mat','newModel')
-% save('finalCoefs.mat','finalCoefs')
-% 
-% MM=runMinMax_max(newModel);
-% MM=fixMinMax(MM);
-% 
-% newModel.lb = MM(:,1);
-% newModel.ub = MM(:,2);
-% 
-% save ('optimisedModelpostFVA.mat','newModel')
-% save ('MM.mat','MM')
-% finalSolution=optimizeCbModel(newModel);
-% 
-% if finalSolution.f~=0
-%     sprintf('Model with applied FVA does solve with miu %d',finalSolution.f)
-% else
-%     sprintf('Model with applied FVA does not solve with a resulted miu of %d',finalSolution.f)
-% end
-% 
-% disp(optimizedGroups)
-% % fprintf("Number of generations was %d\n",y.Generations)
-% % fprintf("The number of function evaluations was : %d\n", y.funccount);
-% % fprintf('The best function value found was : %g\n',y); WinScp 
-% 
+for i=1:(length(Results.Refset.x)-1)
+    count=0;
+    xfit=Results.Refset.x(i,:)';
+    
+   for j=1:(length(problem.x_0)-1)
+       if or(xfit(j,1)<xL(j,1),xfit(j,1)>xU(j,1))
+           count=1;
+          break
+       end
+   end
+   if count~=1
+       bestSolutions=cat(1,bestSolutions,Results.Refset.x(i,:));
+       ff=cat(2,ff,Results.Refset.f(i));
+   end
+end
+%Think of duplicate fitness value
 
+y=bestSolutions(find(ff==min(ff)),:);
+
+clear count,fileName, i,j,
+
+save(strcat('ResultsFile/ess_report',problem.light,fileName,'.mat'))
 end
